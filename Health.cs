@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace RiemannHealth {
 	public interface IHealthReporter {
@@ -20,6 +20,10 @@ namespace RiemannHealth {
 			yield return new Memory();
 			foreach (var drive in DriveInfo.GetDrives().Where(drive => drive.DriveType == DriveType.Fixed)) {
 				yield return new Disk(drive.Name);
+			}
+			foreach (var network in NetworkInterface.GetAllNetworkInterfaces().Where(network => network.NetworkInterfaceType != NetworkInterfaceType.Loopback)) {
+				yield return new NetworkSent(network);
+				yield return new NetworkReceived(network);
 			}
 		}
 
@@ -132,5 +136,64 @@ Total Size: {2}", drive.AvailableFreeSpace, drive.TotalFreeSpace, drive.TotalSiz
 			public float WarnThreshold { get { return 0.90f; } }
 			public float CriticalThreshold { get { return 0.95f; } }
 		}
-	}
+
+		private class NetworkReceived : IHealthReporter {
+			private NetworkInterface _ni;
+			private long _lastBytes;
+
+			public NetworkReceived(NetworkInterface network) {
+				_ni = network;
+				_lastBytes = _ni.GetIPStatistics().BytesReceived;
+			}
+
+			public bool TryGetValue(out string description, out float value) {
+				var bytes = _ni.GetIPStatistics().BytesReceived;
+				value = bytes - _lastBytes;
+				_lastBytes = bytes;
+				description = string.Format(@"Bytes sent: {0}", _lastBytes);
+				return true;
+			}
+
+			public string Name {
+				get { return string.Format("{0} rx bytes", _ni.Name); }
+			}
+
+			public float WarnThreshold {
+				get { return float.PositiveInfinity; }
+			}
+
+			public float CriticalThreshold {
+				get { return float.PositiveInfinity; }
+			}
+		}
+		private class NetworkSent : IHealthReporter {
+			private NetworkInterface _ni;
+			private long _lastBytes;
+
+			public NetworkSent(NetworkInterface network) {
+				_ni = network;
+				_lastBytes = _ni.GetIPStatistics().BytesSent;
+			}
+
+			public bool TryGetValue(out string description, out float value) {
+				var bytes = _ni.GetIPStatistics().BytesSent;
+				value = bytes - _lastBytes;
+				_lastBytes = bytes;
+				description = string.Format(@"Bytes sent: {0}", _lastBytes);
+				return true;
+			}
+
+			public string Name {
+				get { return string.Format("{0} tx bytes", _ni.Name); }
+			}
+
+			public float WarnThreshold {
+				get { return float.PositiveInfinity; }
+			}
+
+			public float CriticalThreshold {
+				get { return float.PositiveInfinity; }
+			}
+		}
+		}
 }
