@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -17,6 +18,9 @@ namespace RiemannHealth {
 		public static IEnumerable<IHealthReporter> Reporters() {
 			yield return new Cpu();
 			yield return new Memory();
+			foreach (var drive in DriveInfo.GetDrives().Where(drive => drive.DriveType == DriveType.Fixed)) {
+				yield return new Disk(drive.Name);
+			}
 		}
 
 		private class Cpu : IHealthReporter {
@@ -101,6 +105,32 @@ Total Page File: {4}",
 			public float CriticalThreshold {
 				get { return 0.95f; }
 			}
+		}
+
+		private class Disk : IHealthReporter {
+			private readonly string _drive;
+			public Disk(string drive) {
+				_drive = drive;
+			}
+
+			public bool TryGetValue(out string description, out float value) {
+				var drive = new DriveInfo(_drive);
+				if (!drive.IsReady) {
+					description = null;
+					value = 0;
+					return false;
+				}
+				value = 1.0f - (((float) drive.AvailableFreeSpace) / drive.TotalSize);
+				description = string.Format(
+					@"Available Space: {0}
+Total Free Space: {1}
+Total Size: {2}", drive.AvailableFreeSpace, drive.TotalFreeSpace, drive.TotalSize);
+				return true;
+			}
+
+			public string Name { get { return "disk " + _drive; } }
+			public float WarnThreshold { get { return 0.90f; } }
+			public float CriticalThreshold { get { return 0.95f; } }
 		}
 	}
 }
