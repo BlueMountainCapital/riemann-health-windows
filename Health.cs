@@ -147,11 +147,16 @@ Total Size: {2}", drive.AvailableFreeSpace, drive.TotalFreeSpace, drive.TotalSiz
 			}
 
 			public bool TryGetValue(out string description, out float value) {
-				var bytes = _ni.GetIPStatistics().BytesReceived;
-				value = bytes - _lastBytes;
-				_lastBytes = bytes;
-				description = string.Format(@"Bytes sent: {0}", _lastBytes);
-				return true;
+				if (_ni.OperationalStatus == OperationalStatus.Up) {
+					var bytes = _ni.GetIPStatistics().BytesReceived;
+					value = bytes - _lastBytes;
+					_lastBytes = bytes;
+					description = string.Format(@"Bytes received: {0}", value);
+					return true;
+				}
+				value = float.NaN;
+				description = null;
+				return false;
 			}
 
 			public string Name {
@@ -176,11 +181,16 @@ Total Size: {2}", drive.AvailableFreeSpace, drive.TotalFreeSpace, drive.TotalSiz
 			}
 
 			public bool TryGetValue(out string description, out float value) {
-				var bytes = _ni.GetIPStatistics().BytesSent;
-				value = bytes - _lastBytes;
-				_lastBytes = bytes;
-				description = string.Format(@"Bytes sent: {0}", _lastBytes);
-				return true;
+				if (_ni.OperationalStatus == OperationalStatus.Up) {
+					var bytes = _ni.GetIPStatistics().BytesSent;
+					value = bytes - _lastBytes;
+					_lastBytes = bytes;
+					description = string.Format(@"Bytes sent: {0}", value);
+					return true;
+				}
+				value = float.NaN;
+				description = null;
+				return false;
 			}
 
 			public string Name {
