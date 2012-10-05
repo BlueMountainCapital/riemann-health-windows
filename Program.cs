@@ -43,7 +43,7 @@ namespace RiemannHealth {
 						if (value < reporter.WarnThreshold) {
 							state = "ok";
 						} else if (value < reporter.CriticalThreshold) {
-							state = "warn";
+							state = "warning";
 						} else {
 							state = "critical";
 						}
