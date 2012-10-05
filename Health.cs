@@ -17,6 +17,7 @@ namespace RiemannHealth {
 	public class Health {
 		public static IEnumerable<IHealthReporter> Reporters() {
 			yield return new Cpu();
+			yield return new Load();
 			yield return new Memory();
 			foreach (var drive in DriveInfo.GetDrives().Where(drive => drive.DriveType == DriveType.Fixed)) {
 				yield return new Disk(drive.Name);
@@ -33,10 +34,8 @@ namespace RiemannHealth {
 				"% Processor Time",
 				"_Total");
 
-			private readonly int _cpuCount = Environment.ProcessorCount;
-
 			public bool TryGetValue(out string description, out float value) {
-				var cpu = _counter.NextValue() / _cpuCount;
+				var cpu = _counter.NextValue();
 				description = string.Format("CPU Load: {0} %", cpu);
 				value = cpu / 100.0f;
 				return true;
@@ -52,6 +51,33 @@ namespace RiemannHealth {
 
 			public float CriticalThreshold {
 				get { return 0.95f; }
+			}
+		}
+		
+		private class Load : IHealthReporter {
+			private readonly PerformanceCounter _counter = new PerformanceCounter(
+				"System",
+				"Processor Queue Length");
+
+			private readonly int _cpuCount = Environment.ProcessorCount;
+
+			public bool TryGetValue(out string description, out float value) {
+				var load = _counter.NextValue();
+				description = string.Format("Processor queue length: {0}", load);
+				value = load;
+				return true;
+			}
+
+			public string Name {
+				get { return "load"; }
+			}
+
+			public float WarnThreshold {
+				get { return _cpuCount * 2.0f; }
+			}
+
+			public float CriticalThreshold {
+				get { return _cpuCount * 2.5f; }
 			}
 		}
 
