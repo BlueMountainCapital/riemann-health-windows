@@ -22,9 +22,25 @@ namespace RiemannHealth {
 			foreach (var drive in DriveInfo.GetDrives().Where(drive => drive.DriveType == DriveType.Fixed)) {
 				yield return new Disk(drive.Name);
 			}
-			foreach (var network in NetworkInterface.GetAllNetworkInterfaces().Where(network => network.NetworkInterfaceType != NetworkInterfaceType.Loopback)) {
-				yield return new NetworkSent(network);
-				yield return new NetworkReceived(network);
+			var interfaces = NetworkInterface.GetAllNetworkInterfaces()
+				.GroupBy(network => network.NetworkInterfaceType)
+				.Where(network => network.Key != NetworkInterfaceType.Loopback);
+			foreach (var networkType in interfaces) {
+				var nt = networkType.ToList();
+				for (var i = 0; i < nt.Count; i++) {
+					var name = Translate(networkType.Key) + i;
+					yield return new NetworkSent(nt[i], name);
+					yield return new NetworkReceived(nt[i], name);
+				}
+			}
+		}
+
+		private static string Translate(NetworkInterfaceType key) {
+			switch (key) {
+				case NetworkInterfaceType.Ethernet:
+					return "eth";
+				default:
+					return key.ToString();
 			}
 		}
 
@@ -164,11 +180,12 @@ Total Size: {2}", drive.AvailableFreeSpace, drive.TotalFreeSpace, drive.TotalSiz
 		}
 
 		private class NetworkReceived : IHealthReporter {
-			private NetworkInterface _ni;
+			private readonly NetworkInterface _ni;
 			private long _lastBytes;
 
-			public NetworkReceived(NetworkInterface network) {
+			public NetworkReceived(NetworkInterface network, string name) {
 				_ni = network;
+				Name = string.Format("{0} rx bytes", name);
 				_lastBytes = _ni.GetIPStatistics().BytesReceived;
 			}
 
@@ -185,9 +202,7 @@ Total Size: {2}", drive.AvailableFreeSpace, drive.TotalFreeSpace, drive.TotalSiz
 				return false;
 			}
 
-			public string Name {
-				get { return string.Format("{0} rx bytes", _ni.Name); }
-			}
+			public string Name { get; private set; }
 
 			public float WarnThreshold {
 				get { return float.PositiveInfinity; }
@@ -198,11 +213,12 @@ Total Size: {2}", drive.AvailableFreeSpace, drive.TotalFreeSpace, drive.TotalSiz
 			}
 		}
 		private class NetworkSent : IHealthReporter {
-			private NetworkInterface _ni;
+			private readonly NetworkInterface _ni;
 			private long _lastBytes;
 
-			public NetworkSent(NetworkInterface network) {
+			public NetworkSent(NetworkInterface network, string name) {
 				_ni = network;
+				Name = string.Format("{0} tx bytes", name);
 				_lastBytes = _ni.GetIPStatistics().BytesSent;
 			}
 
@@ -219,9 +235,7 @@ Total Size: {2}", drive.AvailableFreeSpace, drive.TotalFreeSpace, drive.TotalSiz
 				return false;
 			}
 
-			public string Name {
-				get { return string.Format("{0} tx bytes", _ni.Name); }
-			}
+			public string Name { get; private set; }
 
 			public float WarnThreshold {
 				get { return float.PositiveInfinity; }
