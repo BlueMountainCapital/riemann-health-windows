@@ -125,7 +125,7 @@ namespace RiemannHealth {
 					value = 10000.0f;
 					return false;
 				}
-				value = memoryStatusEx.dwMemoryLoad / 100.0f;
+				value = 1.0f - (((float) memoryStatusEx.ullAvailPhys / memoryStatusEx.ullTotalPhys));
 				description = string.Format(
 					@"Available Physical Memory: {0}
 Total Physical Memory: {1}
