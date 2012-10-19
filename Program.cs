@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
-using riemann;
+using Riemann;
 
 namespace RiemannHealth {
 	public class Program {
@@ -29,7 +29,7 @@ namespace RiemannHealth {
 					Environment.Exit(-1);
 					return;
 			}
-			var client = new Riemann(hostname, port);
+			var client = new Client(hostname, port);
 
 			var reporters = Health.Reporters()
 				.ToList();
