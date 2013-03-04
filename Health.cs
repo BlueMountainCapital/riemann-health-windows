@@ -15,7 +15,7 @@ namespace RiemannHealth {
 	}
 
 	public class Health {
-		public static IEnumerable<IHealthReporter> Reporters() {
+		public static IEnumerable<IHealthReporter> Reporters(bool includeGCStats) {
 			yield return new Cpu();
 			yield return new Load();
 			yield return new Memory();
@@ -32,6 +32,9 @@ namespace RiemannHealth {
 					yield return new NetworkSent(nt[i], name);
 					yield return new NetworkReceived(nt[i], name);
 				}
+			}
+			if (includeGCStats) {
+				yield return new DotNetGCTime();
 			}
 		}
 
@@ -59,6 +62,82 @@ namespace RiemannHealth {
 
 			public string Name {
 				get { return "cpu"; }
+			}
+
+			public float WarnThreshold {
+				get { return 0.90f; }
+			}
+
+			public float CriticalThreshold {
+				get { return 0.95f; }
+			}
+		}
+
+		private class DotNetGCTime : IHealthReporter {
+			private float lastTimeGC;
+			private readonly PerformanceCounter _gcTimeCounter = new PerformanceCounter(
+				".NET CLR Memory",
+				"% Time in GC",
+				"_Global_");
+			
+			private readonly PerformanceCounter _gen0HeapSizeCounter = new PerformanceCounter(
+				".NET CLR Memory",
+				"Gen 0 Heap Size",
+				"_Global_");
+			
+			private readonly PerformanceCounter _gen1HeapSizeCounter = new PerformanceCounter(
+				".NET CLR Memory",
+				"Gen 1 Heap Size",
+				"_Global_");
+			
+			private readonly PerformanceCounter _gen2HeapSizeCounter = new PerformanceCounter(
+				".NET CLR Memory",
+				"Gen 2 Heap Size",
+				"_Global_");
+
+			private readonly PerformanceCounter _gen0CollectionCounter = new PerformanceCounter(
+				".NET CLR Memory",
+				"# Gen 0 Collections",
+				"_Global_");
+
+			private readonly PerformanceCounter _gen1CollectionCounter = new PerformanceCounter(
+				".NET CLR Memory",
+				"# Gen 0 Collections",
+				"_Global_");
+
+			private readonly PerformanceCounter _gen2CollectionCounter = new PerformanceCounter(
+				".NET CLR Memory",
+				"# Gen 0 Collections",
+				"_Global_");
+
+			private const int mb = 1024 * 1024;
+
+			public bool TryGetValue(out string description, out float value) {
+				var gcTime = _gcTimeCounter.NextValue();
+				var gen0Heap = _gen0HeapSizeCounter.NextValue();
+				var gen0Collections = _gen0CollectionCounter.NextValue();
+				var gen1Heap = _gen1HeapSizeCounter.NextValue();
+				var gen1Collections = _gen1CollectionCounter.NextValue();
+				var gen2Heap = _gen2HeapSizeCounter.NextValue();
+				var gen2Collections = _gen2CollectionCounter.NextValue();
+				description = string.Format(
+					@"GC Time: {0:0.00} %
+Gen 0 heap: {1:0.###} mb
+Gen 0 collections: {2}
+Gen 1 heap: {3:0.###} mb
+Gen 1 collections: {4}
+Gen 2 heap: {5:0.###} mb
+Gen 2 collections: {6}", gcTime,
+					gen0Heap / mb, gen0Collections,
+					gen1Heap / mb, gen1Collections,
+					gen2Heap / mb, gen2Collections);
+				value = (gcTime - lastTimeGC) / 100;
+				lastTimeGC = gcTime;
+				return true;
+			}
+
+			public string Name {
+				get { return ".NET GC Time"; }
 			}
 
 			public float WarnThreshold {
