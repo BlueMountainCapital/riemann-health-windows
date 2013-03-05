@@ -74,7 +74,6 @@ namespace RiemannHealth {
 		}
 
 		private class DotNetGCTime : IHealthReporter {
-			private float lastTimeGC;
 			private readonly PerformanceCounter _gcTimeCounter = new PerformanceCounter(
 				".NET CLR Memory",
 				"% Time in GC",
@@ -131,8 +130,7 @@ Gen 2 collections: {6}", gcTime,
 					gen0Heap / mb, gen0Collections,
 					gen1Heap / mb, gen1Collections,
 					gen2Heap / mb, gen2Collections);
-				value = (gcTime - lastTimeGC) / 100;
-				lastTimeGC = gcTime;
+				value = gcTime / 100;
 				return true;
 			}
 
