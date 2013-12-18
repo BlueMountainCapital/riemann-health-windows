@@ -9,12 +9,16 @@ namespace RiemannHealth {
 		public static void Main(string[] args) {
 			string hostname;
 			ushort port;
+			double interval = 1.0;
+			ushort ttl = 5;
 			bool includeGCStats;
 			switch (args.Length) {
 				case 0:
 					var appSettings = ConfigurationManager.AppSettings;
 					hostname = appSettings["RiemannHost"];
 					port = UInt16.Parse(appSettings["RiemannPort"]);
+					interval = (float)UInt16.Parse(appSettings["Interval"]);
+					ttl = UInt16.Parse(appSettings["TTL"]);
 					includeGCStats = Boolean.Parse(appSettings["IncludeGCstats"]);
 					break;
 				case 1:
@@ -53,10 +57,10 @@ namespace RiemannHealth {
 						} else {
 							state = "ok";
 						}
-						client.SendEvent(reporter.Name, state, description, value, 1);
+						client.SendEvent(reporter.Name, state, description, value, ttl);
 					}
 				}
-				Thread.Sleep(TimeSpan.FromSeconds(1.0));
+				Thread.Sleep(TimeSpan.FromSeconds(interval));
 			}
 		}
 
