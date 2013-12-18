@@ -46,12 +46,12 @@ namespace RiemannHealth {
 
 					if (reporter.TryGetValue(out description, out value)) {
 						string state;
-						if (value < reporter.WarnThreshold) {
-							state = "ok";
-						} else if (value < reporter.CriticalThreshold) {
+						if (value >= reporter.CriticalThreshold) {
+							state = "critical";
+						} else if (value >= reporter.WarningThreshold) {
 							state = "warning";
 						} else {
-							state = "critical";
+							state = "ok";
 						}
 						client.SendEvent(reporter.Name, state, description, value, 1);
 					}
