@@ -39,9 +39,12 @@ namespace RiemannHealth {
 					Environment.Exit(-1);
 					return;
 			}
-			var client = new Client(hostname, port);
 
-			var reporters = Health.Reporters(includeGCStats)
+            var serviceConfig = ConfigurationManager.OpenExeConfiguration( ConfigurationUserLevel.PerUserRoamingAndLocal);
+            var serviceSection = serviceConfig.GetSection("services") as ServiceInfoSection;
+         
+            var client = new Client(hostname, port);
+			var reporters = Health.Reporters(includeGCStats, serviceSection.Services)
 				.ToList();
 			while (true) {
 				foreach (var reporter in reporters) {
