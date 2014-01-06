@@ -39,9 +39,12 @@ namespace RiemannHealth {
 					Environment.Exit(-1);
 					return;
 			}
-			var client = new Client(hostname, port);
 
-			var reporters = Health.Reporters(includeGCStats)
+            var serviceConfig = ConfigurationManager.OpenExeConfiguration( ConfigurationUserLevel.PerUserRoamingAndLocal);
+            var serviceSection = serviceConfig.GetSection("services") as ServiceInfoSection;
+         
+            var client = new Client(hostname, port);
+			var reporters = Health.Reporters(includeGCStats, serviceSection.Services)
 				.ToList();
 			while (true) {
 				foreach (var reporter in reporters) {
@@ -52,7 +55,7 @@ namespace RiemannHealth {
 						string state;
 						if (value >= reporter.CriticalThreshold) {
 							state = "critical";
-						} else if (value >= reporter.WarningThreshold) {
+						} else if (value >= reporter.WarnThreshold) {
 							state = "warning";
 						} else {
 							state = "ok";

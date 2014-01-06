@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
+using System.ServiceProcess;
 
 namespace RiemannHealth {
 	public interface IHealthReporter {
@@ -15,10 +16,14 @@ namespace RiemannHealth {
 	}
 
 	public class Health {
-		public static IEnumerable<IHealthReporter> Reporters(bool includeGCStats) {
+		public static IEnumerable<IHealthReporter> Reporters(bool includeGCStats, ServiceElementCollection services) {
 			yield return new Cpu();
 			yield return new Load();
 			yield return new Memory();
+            foreach (ServiceElement service in services)
+            {
+                yield return new Service(service.Name);
+            }
 			foreach (var drive in DriveInfo.GetDrives().Where(drive => drive.DriveType == DriveType.Fixed)) {
 				yield return new Disk(drive.Name);
 			}
@@ -174,6 +179,79 @@ Gen 2 collections: {6}", gcTime,
 			}
 		}
 
+        public class Service : IHealthReporter
+        {
+            private readonly string _service;
+            private ServiceController _sc;
+
+			public Service(string service) {
+                Console.WriteLine(string.Format("starting up service check for: {0}", service));
+				_service = service;
+                _sc = new ServiceController(service);
+			}
+
+         
+            public bool TryGetValue(out string description, out float value)
+            {
+                string status;
+
+                _sc.Refresh();
+
+                try {
+                    switch (_sc.Status)
+                    {
+                        case ServiceControllerStatus.Running:
+                            status = "Running";
+                            value = 0.0F;
+                            break;
+                        case ServiceControllerStatus.Stopped:
+                            status = "Stopped";
+                            value = 1.0F;
+                            break;
+                        case ServiceControllerStatus.Paused:
+                            status = "Paused";
+                            value = 0.5F;
+                            break;
+                        case ServiceControllerStatus.StopPending:
+                            status = "Stopping";
+                            value = 0.5F;
+                            break;
+                        case ServiceControllerStatus.StartPending:
+                            status = "Starting";
+                            value = 0.5F;
+                            break;
+                        default:
+                            value = 1.0F;
+                            status = "Status Changing";
+                            break;
+                    }
+
+                }
+                catch (InvalidOperationException e)
+                {
+                    value = 1.0F;
+                    status = "No such service";
+                }
+
+                description = string.Format("Service {0} has status: {1}", _service, status);
+                return true;
+            }
+
+            public string Name
+            {
+                get { return string.Format("service {0}", _service); }
+            }
+
+            public float WarnThreshold
+            {
+                get { return 0.5F; }
+            }
+
+            public float CriticalThreshold
+            {
+                get { return 1.0F; }
+            }
+        }
 		private class Memory : IHealthReporter {
 			[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
 			private class MEMORYSTATUSEX {
