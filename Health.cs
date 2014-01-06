@@ -202,11 +202,11 @@ Gen 2 collections: {6}", gcTime,
                     {
                         case ServiceControllerStatus.Running:
                             status = "Running";
-                            value = 1.0F;
+                            value = 0.0F;
                             break;
                         case ServiceControllerStatus.Stopped:
                             status = "Stopped";
-                            value = 0.0F;
+                            value = 1.0F;
                             break;
                         case ServiceControllerStatus.Paused:
                             status = "Paused";
@@ -221,7 +221,7 @@ Gen 2 collections: {6}", gcTime,
                             value = 0.5F;
                             break;
                         default:
-                            value = 0.0F;
+                            value = 1.0F;
                             status = "Status Changing";
                             break;
                     }
@@ -229,7 +229,7 @@ Gen 2 collections: {6}", gcTime,
                 }
                 catch (InvalidOperationException e)
                 {
-                    value = 0.0F;
+                    value = 1.0F;
                     status = "No such service";
                 }
 
@@ -249,7 +249,7 @@ Gen 2 collections: {6}", gcTime,
 
             public float CriticalThreshold
             {
-                get { return 0.0F; }
+                get { return 1.0F; }
             }
         }
 		private class Memory : IHealthReporter {
